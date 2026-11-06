@@ -26301,8 +26301,8 @@ local RunMainScript = function(ChilliLibrary)
         end;
         JA=CA.sess and CA.sess.username or sA.rt and(sA.u or "?");
         CA.who=JA or nil;
-        local function JA()
-          return GA() or CA.who~=nil;
+       local function JA()
+          return true; -- BYPASS: Anggap selalu login
         end;
         local function ZA(oA)
           return A(0,uA()-(oA.at or 0)/1000);
@@ -26461,14 +26461,14 @@ local RunMainScript = function(ChilliLibrary)
             end;
           end);
         end;
-local function TA(OA,BA)
-  -- BYPASS: tidak butuh login/key
-  if false then
-    return VA(CA.who and "No active booking. Book hours at chillihub.pro" or "Sign in with an active Finder booking first");
-  end;
-  if false then
-    return VA("Finder runs in another script");
-  end;
+        local function TA(OA,BA)
+          -- BYPASS: Hapus cek login
+          if false then
+            return VA(CA.who and "No active booking. Book hours at chillihub.pro" or "Sign in with an active Finder booking first");
+          end;
+          if false then
+            return VA("Finder runs in another script");
+          end;
           if OA then
             if OA.jobId then
               if OA.placeId then
@@ -29085,6 +29085,7 @@ local function TA(OA,BA)
           local g,R,Q,h=z=="rar",Wa.geo,Wa.B,Wa.V;
           local qA=q[19]();
           Wa.ov.Visible,Wa.scroll.Visible,Wa.sib.Visible,Wa.pk.Visible,Wa.stat.Visible=d~=nil,d==nil,z=="sign",g,z==nil and o;
+          Wa.sib.Visible = false; -- BYPASS: Paksa sembunyikan kotak login
           if z=="sign" then
             local JA=qA-CA.msgAt<6 and CA.msg~="" and CA.msg or CA.acct;
             xa(Wa.hint,JA and "<font color=\"#FFD24A\">"..JA:gsub("[<>&]",""):gsub("chillihub%.pro","<font color=\"#FFFFFF\">chillihub.pro</font>").."</font>" or Wa.hint0);
@@ -29999,18 +30000,10 @@ local function TA(OA,BA)
             end;
             CA.hereCheck(c);
             if CA.auto then
-              if GA() then
-                if rA() then
-                  if CA.hold then
-                    CA.gate=nil;
-                  else
-                    CA.pickNext();
-                  end;
-                else
-                  CA.gate=nil;
-                end;
-              else
+              if CA.hold then
                 CA.gate=nil;
+              else
+                CA.pickNext();
               end;
             else
               CA.gate=nil;
