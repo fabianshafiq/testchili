@@ -3,7 +3,7 @@
   Decompiled / Reconstructed Luau Script
   Source        : Compiled SC.txt (Protected by Luraph Obfuscator v15.1)
   Source SHA-256: 1871c6ee8e0b83880a60053d1e134e144fcee9e39c9e57ff60defa275e871727
-  Target        : Chilli Hub / Steal a Brainrot (SAE v2020)
+  Target        : Venture Hub / Steal a Brainrot (SAE v2020)
   Tool          : REA (Reverse Engineer Anything)
   ============================================================================
   Modules [81], [124], and [43] are 100% token-identical to the source code
@@ -53,7 +53,7 @@ local InitLoadingScreen = function()
     return u("TextLabel",P,{BackgroundTransparency=1,Position=f(12,x),Size=A(1,-24,0,I),Font=X,TextSize=E,TextColor3=a,TextXAlignment=n,Text=i});
   end;
   local x,I=Enum.Font.GothamBold,Enum.TextXAlignment.Left;
-  J(8,18,x,15,q(255,255,255),I,"Chilli Hub");
+  J(8,18,x,15,q(255,255,255),I,"Venture Hub");
   local X=J(8,18,x,15,q(255,120,90),Enum.TextXAlignment.Right,"0%");
   local x=J(27,14,Enum.Font.GothamMedium,12,q(170,170,185),I,"Loading part 1 / 10");
   J=u("Frame",P,{Position=f(12,46),Size=A(1,-24,0,8),BackgroundColor3=q(42,42,50)});
@@ -4867,7 +4867,7 @@ local function CreateRuntimeHelpers()
 end
 
 -- ============================================================================
--- 4. MODULE [43]: Main Chilli Hub Script (SAE v2020 - 47 Feature Sections)
+-- 4. MODULE [43]: Main Venture Hub Script (SAE v2020 - 47 Feature Sections)
 -- ============================================================================
 local RunMainScript = function(ChilliLibrary)
     local U = CreateRuntimeHelpers()
@@ -5383,7 +5383,7 @@ local RunMainScript = function(ChilliLibrary)
         end;
         return true;
       end;
-      local V=A.Window({Title="Chilli Hub",Game=u.GameId~=0 and u.GameId or u.PlaceId,Key=Enum.KeyCode.LeftControl});
+      local V=A.Window({Title="Venture Hub",Game=u.GameId~=0 and u.GameId or u.PlaceId,Key=Enum.KeyCode.LeftControl});
       a.ChilliHubSaeCleanup=function()
         b[53]=false;
         local F=b[20];
@@ -5436,7 +5436,7 @@ local RunMainScript = function(ChilliLibrary)
             if v>60 then
               local Q=b[20];
               Q.warned[F]=os.clock();
-              A.Notify("Chilli Hub",F);
+              A.Notify("Venture Hub",F);
             end;
           end;
         end;
@@ -24696,9 +24696,9 @@ local RunMainScript = function(ChilliLibrary)
           Z.icon_url=C();
           Y.author=Z;
           z,Z=DateTime.now():ToIsoDate(),{};
-          Z.text,Z.icon_url,Y.timestamp="Chilli Hub"..A.."Steal An Egg",f,z;
+          Z.text,Z.icon_url,Y.timestamp="Venture Hub"..A.."Steal An Egg",f,z;
           Y.footer=Z;
-          local C,Z,z={username="Chilli Hub",avatar_url=f,embeds={Y}},G and(m(G)),G and(l(G));
+          local C,Z,z={username="Venture Hub",avatar_url=f,embeds={Y}},G and(m(G)),G and(l(G));
           if Z then
             Y.thumbnail={url="attachment://egg.png"};
             C.attachments={{id=0,filename="egg.png"}};
@@ -26461,13 +26461,14 @@ local RunMainScript = function(ChilliLibrary)
             end;
           end);
         end;
-        local function TA(OA,BA)
-          if not(GA()) then
-            return VA(CA.who and "No active booking. Book hours at chillihub.pro" or "Sign in with an active Finder booking first");
-          end;
-          if not(rA()) then
-            return VA("Finder runs in another script");
-          end;
+local function TA(OA,BA)
+  -- BYPASS: tidak butuh login/key
+  if false then
+    return VA(CA.who and "No active booking. Book hours at chillihub.pro" or "Sign in with an active Finder booking first");
+  end;
+  if false then
+    return VA("Finder runs in another script");
+  end;
           if OA then
             if OA.jobId then
               if OA.placeId then
@@ -27813,18 +27814,10 @@ local RunMainScript = function(ChilliLibrary)
             Sa[19]=(Sa[18]("ImageLabel",Sa[17],JY.Parent));
             va.ink=Sa[19];
             Wa.glx=va;
-          end;
+         end;
           local function DA(oA)
-            if GA() then
+  -- BYPASS: tidak butuh login/key
               return false;
-            end;
-            if CA.who then
-              VA("No active booking. Book hours at chillihub.pro");
-            else
-              CA.drawer="sign";
-              VA(oA);
-            end;
-            return true;
           end;
           wa=Pa(W(ca,"PlusEquip"));
           if wa then
@@ -29837,13 +29830,13 @@ local RunMainScript = function(ChilliLibrary)
               end;
             end;
           end;
-          if FA then
-            if d>FA.stop or not GA() then
-              CA.failed[FA.e.jobId]=d+(FA.a and yA.gap>0 and 1 or 300);
-              t=FA.a;
-              C=if t then not t else FA.tries>1 and("Gave up after %d tries"):format(FA.tries) or "Could not join";
-              HA(C or nil);
-            end;
+         if FA then
+          if d>FA.stop then
+            CA.failed[FA.e.jobId]=d+(FA.a and yA.gap>0 and 1 or 300);
+            t=FA.a;
+            C=if t then not t else FA.tries>1 and("Gave up after %d tries"):format(FA.tries) or "Could not join";
+            HA(C or nil);
+          end;
             if FA then
               if not(FA.fly) then
                 if vA() then
@@ -30113,7 +30106,7 @@ local RunMainScript = function(ChilliLibrary)
           end;
           c.Hero=Y:Frame({Name="Hero",X=0.2,Y=0.2,Height=5.4,Background="#FFFFFF",Gradient=ColorSequence.new(U(74,24,18),U(14,11,15)),GradientRotation=0,Corner=0.35,StrokeColor="#FF6A40",StrokeThickness=0.0909,StrokeTransparency=0.55});
           Y:Image({Parent=c.Hero,X=0.5,Y=0.6000000000000001,Width=4.2,Height=4.2,Image="rbxassetid://128961717706452"});
-          c.Title=r(c.Hero,5.2,0.45,1.6,1.45,"<b>Chilli Hub</b>",nil,{Gradient=ColorSequence.new({y(0,U(255,218,96)),y(0.5,U(255,152,60)),y(1,U(255,82,64))}),GradientRotation=0,TextStrokeTransparency=1});
+          c.Title=r(c.Hero,5.2,0.45,1.6,1.45,"<b>Venture Hub</b>",nil,{Gradient=ColorSequence.new({y(0,U(255,218,96)),y(0.5,U(255,152,60)),y(1,U(255,82,64))}),GradientRotation=0,TextStrokeTransparency=1});
           c.Subtitle=r(c.Hero,5.2,2.1,1,nil,"Official Discord Community","#DCDCE8");
           c.Members=r(c.Hero,5.2,3.3,1.2,nil,("<font color=\"#6EE49C\">%s</font>  <b>%s</b>  <font color=\"#B8B8CC\">Members</font>"):format(utf8.char(9679),"180K+"));
           c.Invite=Y:Frame({Name="Invite",X=0.2,Y=6.2,Height=3.6,BackgroundTransparency=0.5,Corner=0.35,StrokeColor="#5865F2",StrokeThickness=0.0909,StrokeTransparency=0.35});
@@ -30343,7 +30336,7 @@ local RunMainScript = function(ChilliLibrary)
             local l,S=pcall(isfile,c);
             if l and S then
             else
-              c="Chilli Hub/VenyxMark1.png";
+              c="Venture Hub/VenyxMark1.png";
               local G,Z=pcall(isfile,c);
               if not(G and Z) then
                 local G,Z=pcall,crypt and(crypt.base64decode or crypt.base64 and crypt.base64.decode);
@@ -30359,7 +30352,7 @@ local RunMainScript = function(ChilliLibrary)
                 else
                   return;
                 end;
-                pcall(makefolder,"Chilli Hub");
+                pcall(makefolder,"Venture Hub");
                 pcall(writefile,c,z);
               end;
             end;
