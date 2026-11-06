@@ -1439,8 +1439,8 @@ local LoadChilliLibrary = function()
         end;
       end;
       local function jA()
-        local ka,ya,ra={},ipairs,U[72](na());
-        for ma,Wa in ya(U:g2(ra)) do
+        local ka,ya,ra={},ipairs,na();
+        for ma,Wa in ya(ra) do
           ma=Aa[Wa];
           if ma then
             ma.b.Visible=ba=="" or Wa:lower():find(ba,1,true)~=nil;
@@ -3403,8 +3403,8 @@ local LoadChilliLibrary = function()
             return;
           end;
         end;
-        o=U[72](e:Collect());
-        if e:Save(O,U:g2(o)) then
+        o=e:Collect();
+        if e:Save(O,o) then
           R:Set("",true);
           N();
           S(O);
@@ -3490,8 +3490,7 @@ local LoadChilliLibrary = function()
         q.Notify("Config Imported","Imported: "..G..". Open Load Config to apply, or Set Startup Config for Auto Load.",5);
       end,"Creates a config only; use Load Config or Set Startup after","").Quick=false;
       o=H;
-      H={};
-      U:H2(H,0,o[2],o[3],o[4],o[5]);
+      H={o[2],o[3],o[4],o[5]};
       for U,U in ipairs(H) do
         U.Skip=true;
       end;
@@ -4087,90 +4086,774 @@ local function CreateRuntimeHelpers()
     end
 
     -- U:t2(proto_idx, upval_desc, upval_map, protos, frames, env)
-    -- Functional implementations and domain shims for the 10 virtualized helper closures:
+    -- Complete functional implementations for the 10 virtualized helper closures:
     function U:t2(proto_idx, upval_desc, upval_map, protos, frames, env)
-        -- Proto 1 (part 02_admin#1): Godmode/Shield Humanoid Cloner & Link Manager
+        -- Proto 1 (part 02_admin#1 - XA): Godmode/Shield Humanoid Cloner & Link Manager
         if proto_idx == 1 then
             return function()
                 local b = upval_map and upval_map[1]
                 if not b then return true end
+                if b[2] and b[2]() then return true end
+                local st = b[3]
+                if st and st.at and os.clock() < st.at then return false end
                 local char = b[1] and b[1].Character
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if not hum then return true end
-                if b[2] and b[2]() then return true end -- already cloned/active
-                local clone = hum:Clone()
-                b[3].o = hum
-                b[3].c = clone
+                if not hum or hum.Health <= 0 then return false end
+                if b[7] then b[7]() end
+                local arch = hum.Archivable
+                hum.Archivable = true
+                local ok, clone = pcall(hum.Clone, hum)
+                hum.Archivable = arch
+                if not (ok and clone) then return false end
+                st.o = hum
+                st.c = clone
                 clone.Parent = char
                 hum.Parent = nil
+                if st.links then
+                    st.links[#st.links + 1] = clone:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+                        pcall(function() hum.WalkSpeed = clone.WalkSpeed end)
+                    end)
+                    st.links[#st.links + 1] = clone:GetPropertyChangedSignal("JumpPower"):Connect(function()
+                        pcall(function() hum.JumpPower = clone.JumpPower end)
+                    end)
+                end
                 if b[6] then b[6](clone) end
                 return true
             end
         end
 
-        -- Proto 3 (part 10_steal#1 - MA): Reach and distance check
+        -- Proto 3 (part 10_steal#1 - MA): Reach and walk to target / egg position
         if proto_idx == 3 then
-            return function(target, opt)
+            return function(target, keepGoing)
                 local b = upval_map and upval_map[8]
-                local myPos = b and b[15] and b[15]()
-                local targetPos = (target and target.Pos) or (target and target.Position)
-                if not (myPos and targetPos) then return true, "Reachable" end
-                local dist = (myPos.Position - targetPos).Magnitude
-                local maxReach = (opt and tonumber(opt)) or 35
-                return dist <= maxReach, (dist <= maxReach and "Reachable" or "Taken by someone")
+                local XA = upval_map and upval_map[10]
+                if not b then return false, "Missing runtime context" end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+
+                local targetPos
+                local uid
+                local targetName = "egg"
+                if typeof(target) == "Vector3" then
+                    targetPos = target
+                elseif typeof(target) == "Instance" then
+                    targetPos = target:IsA("BasePart") and target.Position or target:GetPivot().Position
+                    targetName = target.Name
+                elseif type(target) == "table" then
+                    targetPos = target.Pos or target.Position
+                    uid = target.Uid
+                    targetName = target.Name or target.n or targetName
+                end
+                if not targetPos then return false, "Egg is gone" end
+
+                if b[13] and not b[13](okFn) then
+                    return false, "Stuck on treadmill"
+                end
+
+                if XA and XA[10] and XA[10]() then
+                    if XA[12] and not XA[12]() then
+                        return false, "Stuck in fuse zone"
+                    end
+                end
+
+                local hrp = b[15] and b[15]()
+                if not hrp then return false, "No character" end
+
+                if b[16] and b[16](hrp.Position) and not b[16](targetPos) then
+                    if b[14] and not b[14](okFn) then
+                        return false, "Could not leave base"
+                    end
+                    if b[17] and not b[17](okFn, "Going for " .. tostring(targetName)) then
+                        return false, "Field is sealed"
+                    end
+                end
+
+                if b[11] then
+                    b[11]("Going for " .. tostring(targetName))
+                end
+
+                local abortedReason
+                local function checkStep()
+                    if not okFn() then return false end
+                    if uid and b[18] then
+                        local recs = b[18]()
+                        local rec = recs[uid]
+                        if not rec then
+                            for _, r in pairs(recs) do
+                                if type(r) == "table" and r.Uid == uid then
+                                    rec = r
+                                    break
+                                end
+                            end
+                        end
+                        if not rec or rec.State == "Claimed" then
+                            abortedReason = "Egg is gone"
+                            return false
+                        elseif rec.State == "Carried" then
+                            local myId = b[1] and b[1].UserId
+                            if (tonumber(rec.CarrierUserId) or 0) ~= myId then
+                                abortedReason = "Taken by someone"
+                                return false
+                            end
+                        elseif rec.State == "GuardCarried" then
+                            abortedReason = "Guard is bringing it back"
+                            return false
+                        elseif typeof(rec.BottomCFrame) == "CFrame" and (rec.State == "Slot" or rec.State == "Dropped") then
+                            targetPos = rec.BottomCFrame.Position
+                            if type(target) == "table" then
+                                target.Pos = targetPos
+                            end
+                        end
+                    end
+                    return true
+                end
+
+                if XA and XA[19] then
+                    local reached = XA[19](targetPos, checkStep)
+                    if not reached then
+                        return false, abortedReason or "Could not reach egg"
+                    end
+                end
+
+                return true, "Reachable"
             end
         end
 
-        -- Proto 5 (part 10_steal#1 - yA): Move / stepTo target position
+        -- Proto 5 (part 10_steal#1 - yA): Approach & Grab Field Egg (CarryFieldEgg + ProximityPrompt)
         if proto_idx == 5 then
-            return function(eggId, target, pos)
+            return function(eggId, keepGoing, pos, fromWalk)
                 local b = upval_map and upval_map[20]
-                if pos and b and b[26] then
-                    pcall(b[26], pos)
+                local XA = upval_map and upval_map[30]
+                if not b then return false, "Missing runtime context" end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+
+                if b[21] and b[21](eggId) then
+                    return true
+                end
+
+                local deadline = os.clock() + (fromWalk and 4.5 or 3.5)
+                local nextPromptAt = 0
+                local inFlight = 0
+                local failReason
+
+                while os.clock() < deadline and okFn() do
+                    if b[21] and b[21](eggId) then
+                        return true
+                    end
+                    if XA and XA[30] and not XA[30](eggId) then
+                        return false, "Guard is bringing it back"
+                    end
+
+                    local slotStr
+                    if b[18] then
+                        for k, rec in pairs(b[18]()) do
+                            if type(rec) == "table" and (rec.Uid == eggId or k == eggId) then
+                                if rec.State == "Carried" then
+                                    local myId = b[1] and b[1].UserId
+                                    if (tonumber(rec.CarrierUserId) or 0) == myId then
+                                        return true
+                                    else
+                                        return false, "Taken by someone"
+                                    end
+                                elseif rec.State == "Claimed" then
+                                    return false, "Egg is gone"
+                                end
+                                if type(rec.AreaId) == "string" and type(rec.NestId) == "string" then
+                                    slotStr = rec.AreaId .. ":" .. rec.NestId
+                                end
+                                if typeof(rec.BottomCFrame) == "CFrame" then
+                                    pos = rec.BottomCFrame.Position
+                                end
+                                break
+                            end
+                        end
+                    end
+
+                    local mdl = workspace:FindFirstChild(eggId)
+                    if mdl and mdl:IsA("Model") then
+                        local ok, p = pcall(function() return mdl:GetPivot().Position end)
+                        if ok and p then pos = p end
+                    end
+
+                    if pos and b[26] and b[27] and b[28] then
+                        local hrp = b[15] and b[15]()
+                        local hum = b[8] and b[8]()
+                        local rot = hrp and hrp.CFrame.Rotation or b[27]()
+                        local yOff = (hum and hum.HipHeight or 2) + 1
+                        b[26](b[27](pos + b[28](0, yOff, 0)) * rot)
+                    end
+
+                    if os.clock() >= nextPromptAt then
+                        nextPromptAt = os.clock() + 0.12
+                        local prompt = fireproximityprompt and XA and XA[31] and pos and XA[31](pos)
+                        if prompt then
+                            pcall(function()
+                                prompt.HoldDuration = 0
+                                fireproximityprompt(prompt)
+                            end)
+                        end
+                    end
+
+                    if inFlight < 3 and b[22] then
+                        inFlight = inFlight + 1
+                        task.spawn(function()
+                            local res, msg = b[22]("Egg", "CarryFieldEgg", eggId, slotStr)
+                            inFlight = inFlight - 1
+                            local errStr = tostring(msg or res or ""):lower()
+                            if errStr:find("pet") and errStr:find("full") then
+                                failReason = "Pet bag is full"
+                            elseif errStr:find("full") then
+                                failReason = "Bag is full"
+                            end
+                        end)
+                    end
+
+                    if failReason then
+                        return false, failReason
+                    end
+
+                    if b[23] then b[23]() else task.wait() end
+                end
+
+                if b[21] and b[21](eggId) then
+                    return true
+                end
+                return false, failReason or "Could not grab egg"
+            end
+        end
+
+        -- Proto 7 (part 10_steal#1 - aA): Teleport to Egg & Grab
+        if proto_idx == 7 then
+            return function(target, keepGoing)
+                local b = upval_map and upval_map[13]
+                local XA = upval_map and upval_map[33]
+                if not b then return false, "Missing runtime context" end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+
+                if not (target and target.Uid and target.Pos) then
+                    return false, "Egg is gone"
+                end
+
+                if b[13] and not b[13](okFn) then
+                    return false, "Stuck on treadmill"
+                end
+                if b[14] and not b[14](okFn, true) then
+                    return false, "Could not leave safe zone"
+                end
+
+                if XA and XA[33] then
+                    pcall(XA[33])
+                end
+                if b[20] and b[20].trust then
+                    pcall(b[20].trust)
+                end
+
+                local hrp = b[15] and b[15]()
+                local camGuard = XA and XA[39] and hrp and XA[39](hrp.Position, target.Pos)
+                if b[11] then
+                    b[11]("Teleporting to " .. tostring(target.Name or "Egg"))
+                end
+
+                local deadline = os.clock() + 3.5
+                local nextPromptAt = 0
+                local inFlight = 0
+                local failReason
+
+                while os.clock() < deadline and okFn() do
+                    if b[21] and b[21](target.Uid) then
+                        break
+                    end
+                    if XA and XA[30] and not XA[30](target.Uid) then
+                        failReason = "Guard is bringing it back"
+                        break
+                    end
+
+                    local pos = target.Pos
+                    local slotStr
+                    if b[18] then
+                        local rec = b[18]()[target.Uid]
+                        if type(rec) == "table" then
+                            if rec.State == "Carried" then
+                                local myId = b[1] and b[1].UserId
+                                if (tonumber(rec.CarrierUserId) or 0) ~= myId then
+                                    failReason = "Taken by someone"
+                                    break
+                                end
+                            elseif rec.State == "Claimed" then
+                                failReason = "Egg is gone"
+                                break
+                            end
+                            if type(rec.AreaId) == "string" and type(rec.NestId) == "string" then
+                                slotStr = rec.AreaId .. ":" .. rec.NestId
+                            end
+                            if typeof(rec.BottomCFrame) == "CFrame" then
+                                pos = rec.BottomCFrame.Position
+                                target.Pos = pos
+                            end
+                        end
+                    end
+
+                    if b[20] and b[20].trust then
+                        pcall(b[20].trust)
+                    end
+
+                    if pos and b[26] and b[27] and b[28] then
+                        b[26](b[27](pos + b[28](0, 3, 0)))
+                    end
+
+                    if os.clock() >= nextPromptAt then
+                        nextPromptAt = os.clock() + 0.12
+                        local prompt = fireproximityprompt and XA and XA[31] and pos and XA[31](pos)
+                        if prompt then
+                            pcall(function()
+                                prompt.HoldDuration = 0
+                                fireproximityprompt(prompt)
+                            end)
+                        end
+                    end
+
+                    if inFlight < 3 and b[22] then
+                        inFlight = inFlight + 1
+                        task.spawn(function()
+                            local res, msg = b[22]("Egg", "CarryFieldEgg", target.Uid, slotStr)
+                            inFlight = inFlight - 1
+                            local errStr = tostring(msg or res or ""):lower()
+                            if errStr:find("pet") and errStr:find("full") then
+                                failReason = "Pet bag is full"
+                            elseif errStr:find("full") then
+                                failReason = "Bag is full"
+                            end
+                        end)
+                    end
+
+                    if failReason then break end
+                    if b[23] then b[23]() else task.wait() end
+                end
+
+                if camGuard and XA and XA[38] then
+                    pcall(XA[38], camGuard)
+                end
+
+                if b[21] and b[21](target.Uid) then
+                    return true, "grabbed"
+                end
+                return false, failReason or "Egg went back to its nest"
+            end
+        end
+
+        -- Proto 9 (part 10_steal#1 - XA[47]): Walk/Cross into base & wait for redeem verdict
+        if proto_idx == 9 then
+            return function(uid, keepGoing, rot)
+                local b = upval_map and upval_map[11]
+                local XA = upval_map and upval_map[19]
+                if not b then return false end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+                rot = rot or (b[27] and b[27]())
+
+                local safePos = b[43] and b[43]()
+                if not safePos then return false end
+
+                local eggName = (b[42] and b[42].cur) or "egg"
+                if b[11] then
+                    b[11]("Delivering " .. tostring(eggName) .. " to base")
+                end
+
+                for attempt = 1, 2 do
+                    local startAt = os.clock()
+                    -- Walk across the separation line into the safe zone first using XA[19]
+                    if XA and XA[19] then
+                        XA[19](safePos, function()
+                            return okFn() and (b[21] and b[21](uid)) and ((XA and XA[45]) or 0) < startAt
+                        end)
+                    end
+
+                    if ((XA and XA[45]) or 0) >= startAt then
+                        return true
+                    end
+
+                    if b[21] and b[21](uid) and b[26] and b[27] then
+                        b[26](b[27](safePos) * rot)
+                    end
+
+                    local ping = (b[44] and b[44]()) or 0.2
+                    local waitStart = os.clock()
+                    while os.clock() - waitStart < (1.5 + ping * 3) and ((XA and XA[45]) or 0) < startAt do
+                        if not (b[21] and b[21](uid)) then
+                            break
+                        end
+                        if b[23] then b[23]() else task.wait() end
+                    end
+
+                    if ((XA and XA[45]) or 0) >= startAt then
+                        return true
+                    end
+                    if not (b[21] and b[21](uid)) then
+                        return nil
+                    end
+                end
+                return false
+            end
+        end
+
+        -- Proto 11 (part 10_steal#1 - nA): Carry & Deliver Egg to Base / Safe Zone
+        if proto_idx == 11 then
+            return function(uid, keepGoing)
+                local b = upval_map and upval_map[20]
+                local XA = upval_map and upval_map[46]
+                if not b then return false, "Missing runtime context" end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+
+                -- Wait briefly for carry state to register if just picked up
+                local waitCarry = 0
+                while not (b[21] and b[21](uid)) and waitCarry < 0.6 and okFn() do
+                    waitCarry = waitCarry + ((b[23] and b[23]()) or task.wait())
+                end
+
+                if not (b[21] and b[21](uid)) then
+                    if XA and XA[48] and not XA[48](uid, okFn) then
+                        return false, "Could not grab egg"
+                    end
+                end
+
+                local char = b[1] and b[1].Character
+                local hrp = b[15] and b[15]()
+                if not (char and hrp) then
+                    return false, "No character"
+                end
+
+                local rot = hrp.CFrame.Rotation
+                local sepPos = (b[24] and b[24]()) or b[28](552.2, 67.67, 0)
+                local safePos = (b[43] and b[43]()) or b[28](528.7, 70.57, -364.11)
+                local targetZ = math.clamp(hrp.Position.Z, -415, -305)
+                -- Pass safePos X/Y with clamped Z so XA[46] carries the egg right up to the base line
+                local targetBasePos = b[28](safePos.X, safePos.Y + 3, targetZ)
+
+                if b[11] then
+                    b[11]("Carrying " .. tostring((b[42] and b[42].cur) or "egg") .. " to base")
+                end
+
+                local mode = b[20] and b[20].cmode and b[20].cmode()
+                if b[25] and b[25].moveTo == "Teleport" then
+                    if b[20] and b[20].tpRapid and b[20].tpRapid() then
+                        mode = "Fast tween"
+                    elseif b[20] and b[20].tpCodium and b[20].tpCodium() then
+                        mode = "Instant steps"
+                    else
+                        mode = "Tween"
+                    end
+                end
+
+                if XA and XA[46] then
+                    XA[46](uid, okFn, targetBasePos, targetZ, rot, mode)
+                end
+
+                -- If dropped on the way, attempt recovery via XA[48] / XA[49]
+                if not (b[21] and b[21](uid)) then
+                    if not okFn() then return false, "Cancelled" end
+                    if XA and XA[48] and XA[48](uid, okFn) then
+                        -- Recovered quickly via stealChase
+                    elseif XA and XA[49] then
+                        local curHrp = b[15] and b[15]()
+                        local dropPos = curHrp and curHrp.Position or targetBasePos
+                        local ok, msg = XA[49](uid, okFn, char, dropPos, rot)
+                        if ok or ok == nil then
+                            return ok, msg
+                        end
+                        return false, msg or "Dropped on the way"
+                    else
+                        return false, "Dropped on the way"
+                    end
+                end
+
+                -- Check if user enabled "Drop Eggs At Safe Zone"
+                if XA and XA[40] and XA[40]() then
+                    if XA and XA[19] then
+                        XA[19](safePos + b[28](22, 0, 0), function()
+                            return okFn() and (b[21] and b[21](uid))
+                        end)
+                    end
+                    if b[22] then
+                        b[22]("Egg", "DropFieldEgg", "PlayerRequest")
+                    end
+                    return true
+                end
+
+                -- Cross into base & redeem via XA[47] (Proto 9)
+                if XA and XA[47] then
+                    local redeemed = XA[47](uid, okFn, rot)
+                    if redeemed or redeemed == nil then
+                        return redeemed
+                    end
+                end
+
+                return false, "Could not redeem egg at base"
+            end
+        end
+
+        -- Proto 13 (part 10_steal#1 - iA): Instant Steal V3 (with Admin Treadmill boost)
+        if proto_idx == 13 then
+            return function(target, keepGoing)
+                local b = upval_map and upval_map[1]
+                local XA = upval_map and upval_map[10]
+                if not (b and target and target.Uid and target.Pos) then return false end
+                local okFn = type(keepGoing) == "function" and keepGoing or function() return true end
+
+                if b[13] and not b[13](okFn) then return false end
+                if XA and XA[10] and XA[10]() then
+                    if XA[12] and not XA[12]() then return false end
+                end
+
+                if b[11] then
+                    b[11]("Instant Steal V3: " .. tostring(target.Name or "Egg"))
+                end
+
+                if not (b[50] and b[50](target.Pos + (b[28] and b[28](0, 3, 0) or Vector3.new(0, 3, 0)), okFn, 450)) then
+                    return false
+                end
+
+                local deadline = os.clock() + 2.5
+                while os.clock() < deadline and okFn() and not (b[21] and b[21](target.Uid)) do
+                    if b[26] and b[27] then
+                        b[26](b[27](target.Pos + Vector3.new(0, 3, 0)))
+                    end
+                    if b[22] then
+                        task.spawn(b[22], "Egg", "CarryFieldEgg", target.Uid)
+                    end
+                    if b[23] then b[23]() else task.wait() end
+                end
+
+                if not (b[21] and b[21](target.Uid)) then
+                    return false
+                end
+
+                local safePos = (b[43] and b[43]()) or Vector3.new(528.7, 70.57, -364.11)
+                if not (b[50] and b[50](safePos + Vector3.new(0, 3, 0), okFn, 450)) then
+                    return false
                 end
                 return true
             end
         end
 
-        -- Proto 7 (part 10_steal#1 - aA): Prompt / Grab egg attempt
-        if proto_idx == 7 then
-            return function(target, opt)
-                return true, "grabbed"
-            end
-        end
-
-        -- Proto 9 & 11 (part 10_steal#1 - nA): Chase & Carrier escort handler
-        if proto_idx == 9 or proto_idx == 11 then
-            return function(uid, opt)
-                return true, "done"
-            end
-        end
-
-        -- Proto 13 (part 10_steal#1 - iA): Carry area index validator
-        if proto_idx == 13 then
-            return function(...)
-                return true
-            end
-        end
-
-        -- Proto 15 (part 10_steal#2 - XA): Auto-grab scheduler tick
+        -- Proto 15 (part 10_steal#2 - XA): Anti-Guard Evasion Hop Scheduler
         if proto_idx == 15 then
-            return function(...)
+            return function(startTime)
+                local b = upval_map and upval_map[1]
+                local qA = upval_map and upval_map[52]
+                if not (b and qA) then return true end
+
+                local char = b[1] and b[1].Character
+                local hrp = b[15] and b[15]()
+                local hum = b[8] and b[8]()
+                if not (char and hrp and hum) then
+                    if qA[52] then qA[52]() end
+                    return true
+                end
+
+                local cfg = qA[54] and qA[54]()
+                if not cfg then
+                    if qA[52] then qA[52]() end
+                    return true
+                end
+
+                local originPos = hrp.Position
+                local safeHopPos = (qA[56] and qA[56](originPos)) or (qA[57] and qA[57]()) or originPos + Vector3.new(0, 35, 0)
+                local steps, relTime = qA[55](cfg)
+
+                if qA[61] then
+                    pcall(qA[61], char, cfg.off)
+                end
+
+                local stepIdx = 1
+                while b[53] and (os.clock() - startTime) < relTime do
+                    local elapsed = os.clock() - startTime
+                    local curStep = steps[stepIdx]
+                    if curStep and elapsed >= curStep[1] then
+                        stepIdx = stepIdx + 1
+                    end
+                    local activeStep = steps[math.max(1, stepIdx - 1)]
+                    local holdSafe = activeStep and activeStep[2]
+                    local dest = holdSafe and safeHopPos or (originPos + Vector3.new(0, 28, 0))
+                    if qA[60] then
+                        qA[60](char, hrp, dest, cfg.freeze)
+                    end
+                    b[58].Heartbeat:Wait()
+                end
+
+                if qA[60] and hrp.Parent then
+                    qA[60](char, hrp, originPos, true)
+                end
+                if qA[52] then
+                    qA[52]()
+                end
                 return true
             end
         end
 
-        -- Proto 17 (part 20_farm#1 - yA): Farm recs ranking
+        -- Proto 17 (part 20_farm#1 - yA): Plot Egg Placement LocalCFrame Grid Generator
         if proto_idx == 17 then
-            return function(...)
-                return true
+            return function(recs)
+                local b = upval_map and upval_map[63]
+                if not b then return {} end
+                local plot = b[63] and b[63]()
+                local center = plot and plot.CenterPoint
+                local petArea = plot and plot.PetArea
+                local v3 = b[28] or Vector3.new
+                local cfNew = b[27] or CFrame.new
+
+                local used = {}
+                for _, rec in pairs(type(recs) == "table" and recs or {}) do
+                    local lc = type(rec) == "table" and type(rec.Placement) == "table" and rec.Placement.LocalCFrame
+                    if typeof(lc) == "CFrame" then
+                        used[#used + 1] = lc.Position
+                    end
+                end
+
+                local baseOffset = v3(0, 0, 0)
+                local sizeX, sizeZ = 36, 36
+                if center and petArea and center:IsA("BasePart") and petArea:IsA("BasePart") then
+                    baseOffset = center.CFrame:PointToObjectSpace(petArea.Position)
+                    sizeX = math.max(petArea.Size.X - 6, 16)
+                    sizeZ = math.max(petArea.Size.Z - 6, 16)
+                end
+
+                local slots = {}
+                local step = 5.5
+                for dx = -sizeX * 0.5, sizeX * 0.5, step do
+                    for dz = -sizeZ * 0.5, sizeZ * 0.5, step do
+                        local candidatePos = v3(baseOffset.X + dx, baseOffset.Y, baseOffset.Z + dz)
+                        local free = true
+                        for _, uPos in ipairs(used) do
+                            if v3(candidatePos.X - uPos.X, 0, candidatePos.Z - uPos.Z).Magnitude < 4.2 then
+                                free = false
+                                break
+                            end
+                        end
+                        if free then
+                            slots[#slots + 1] = { cfNew(candidatePos) }
+                        end
+                    end
+                end
+
+                if #slots == 0 then
+                    for i = 1, 30 do
+                        slots[#slots + 1] = { cfNew(baseOffset + v3((i % 6) * 5 - 12, 0, math.floor(i / 6) * 5 - 12)) }
+                    end
+                end
+                return slots
             end
         end
 
-        -- Proto 19 (part 20_farm#8 - z[66].fn): Fuse farm action handler
+        -- Proto 19 (part 20_farm#8 - z[66].fn): Auto Fuse Machine Action Handler
         if proto_idx == 19 then
-            return function(...)
-                return true
+            return function()
+                local b = upval_map and upval_map[64]
+                local z = upval_map and upval_map[66]
+                if not (b and z) then return end
+
+                local save = b[64] and b[64]()
+                local setPreview = z[70]
+                if not save then
+                    if setPreview then setPreview("Fuse machine data is not available yet") end
+                    return
+                end
+
+                local pets = b[65] and b[65](save, true) or {}
+                local filter = z[68] or {}
+                local skipMut = b[25] and b[25].fuseKeep
+                local groups = {}
+
+                for _, pet in ipairs(pets) do
+                    if not (skipMut and #pet.m > 0) then
+                        if not b[67] or b[67](filter, pet) then
+                            local g = groups[pet.cat]
+                            if not g then
+                                g = { cat = pet.cat, n = pet.n, r = pet.r, v = pet.v }
+                                groups[pet.cat] = g
+                            end
+                            g[#g + 1] = pet
+                            if pet.v < g.v then g.v = pet.v end
+                        end
+                    end
+                end
+
+                local candidates = {}
+                local useHigh = (b[25] and b[25].fuseUse) == "Highest value first"
+                for _, g in pairs(groups) do
+                    if #g >= 3 then
+                        table.sort(g, function(a, c)
+                            if useHigh then return a.v > c.v end
+                            return a.v < c.v
+                        end)
+                        candidates[#candidates + 1] = g
+                    end
+                end
+
+                local modeKey = (b[25] and b[25].fuseFirst) or "Lowest rarity"
+                local scoreFn = (z[69] and z[69][modeKey]) or function(g) return #g end
+                table.sort(candidates, function(a, c)
+                    local sa, sc = scoreFn(a), scoreFn(c)
+                    if sa ~= sc then return sa > sc end
+                    return a.v < c.v
+                end)
+
+                local best = candidates[1]
+                if setPreview then
+                    if save.FusionLocked then
+                        setPreview(type(save.FusionEggReward) == "table" and "Fuse finished, ready to claim!" or "Fusing in progress...")
+                    elseif best then
+                        setPreview(("Ready: 3x %s (%d sets available)"):format(tostring(best.n), #candidates))
+                    else
+                        setPreview("No matching 3-pet set available to fuse")
+                    end
+                end
+
+                if not (b[25] and b[25].fuse) then return end
+
+                if save.FusionLocked then
+                    if type(save.FusionEggReward) == "table" and b[9] then
+                        b[9]("RF/Fusery/FinishReveal")
+                    end
+                    return
+                end
+
+                local slots = type(save.FusionSlots) == "table" and save.FusionSlots or {}
+                if not best then
+                    if b[25].fuseEject and #slots > 0 and b[9] then
+                        for _, uid in ipairs(slots) do
+                            b[9]("RF/Fusery/EjectPet", uid)
+                            task.wait(0.25)
+                        end
+                    end
+                    return
+                end
+
+                local pickUids = { best[1].uid, best[2].uid, best[3].uid }
+                local wantSet, keptSet = {}, {}
+                for _, uid in ipairs(pickUids) do wantSet[uid] = true end
+
+                for _, uid in ipairs(slots) do
+                    if wantSet[uid] then
+                        keptSet[uid] = true
+                    elseif b[9] then
+                        b[9]("RF/Fusery/EjectPet", uid)
+                        task.wait(0.25)
+                    end
+                end
+
+                if save.FusionInfoAcknowledged == false and b[9] then
+                    b[9]("RF/Fusery/ConfirmBriefing")
+                    task.wait(0.25)
+                end
+
+                for _, uid in ipairs(pickUids) do
+                    if not keptSet[uid] and b[9] then
+                        b[9]("RF/Fusery/LoadPet", uid)
+                        task.wait(0.25)
+                    end
+                end
+
+                if b[9] then
+                    b[9]("RF/Fusery/BeginFuse")
+                end
             end
         end
 
@@ -4978,6 +5661,23 @@ local RunMainScript = function(ChilliLibrary)
         else
           uA=bA;
         end;
+        if not uA and b[18] and b[1] then
+          local myId = b[1].UserId
+          for k, rec in pairs(b[18]()) do
+            if type(rec) == "table" and rec.State == "Carried" and tonumber(rec.CarrierUserId) == myId then
+              local rUid = rec.Uid or k
+              fA.on = true
+              fA.uid = rUid
+              if AA == nil then
+                local PA = b[20]
+                uA = not (PA and PA.rag)
+              else
+                uA = (rUid == AA)
+              end
+              break
+            end
+          end
+        end
         return uA;
       end;
       task.spawn(function()
@@ -6072,7 +6772,7 @@ local RunMainScript = function(ChilliLibrary)
       local xA=w({name="Steal",mover=true,gap=0.5,pri=2,hold=true});
       xA.on=function()
         local XA=b[25];
-        local aA,nA=XA.steal;
+        local aA,nA=(XA.steal or (b[20] and b[20].pick and #b[20].pick>0));
         if aA then
           nA=aA;
         else
@@ -8026,11 +8726,12 @@ local RunMainScript = function(ChilliLibrary)
                       oA[#oA+1]=WA;
                     elseif WA.tg then
                       local LA=b[25];
-                      if LA.steal then
+                      local hasPick = b[20] and b[20].pick and #b[20].pick > 0;
+                      if WA.kind=="pick" then
+                        oA[#oA+1]=WA;
+                      elseif not hasPick and LA.steal then
                         oA[#oA+1]=WA;
                       elseif WA.kind=="wisp" then
-                        oA[#oA+1]=WA;
-                      elseif WA.kind=="pick" then
                         oA[#oA+1]=WA;
                       elseif WA.kind=="ufo" then
                         oA[#oA+1]=WA;
@@ -9576,7 +10277,7 @@ local RunMainScript = function(ChilliLibrary)
             end;
           end;
           SA=b[25];
-          if SA.steal then
+          if SA.steal and #CA==0 then
             local GA,ZA=b[20],b[20];
             for oA,zA in ipairs(GA.stealSort(ZA.allEggs())) do
               if zA.tg then
@@ -9638,15 +10339,17 @@ local RunMainScript = function(ChilliLibrary)
             local sA=b[20];
             sA.stopSteal();
           end;
+          h();
         end;
         local function sA()
-          local GA=b[25];
-          if not(GA.steal) then
-            local GA=b[20];
-            if GA.autoSteal then
-              local GA=b[20];
-              GA.autoSteal:Set(true);
-            end;
+          local GA=b[20];
+          if GA.fresh then
+            GA.fresh();
+          end;
+          h();
+          if GA.hud then
+            GA.hud.Sync();
+            GA.hud.Refresh();
           end;
         end;
         local function GA(ZA,oA)
